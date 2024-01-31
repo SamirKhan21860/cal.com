@@ -1,3 +1,4 @@
+import { getOrgUsernameFromEmail } from "./getOrgUsernameFromEmail";
 import type z from "zod";
 
 import { updateNewTeamMemberEventTypes } from "@calcom/lib/server/queries";
@@ -30,16 +31,20 @@ export const createOrUpdateMemberships = async ({
           email: true,
         },
       });
+
+      // Ideally dbUser.username should never be null, but just in case.
+      // This method being called only during signup means that dbUser.username should be the correct org username
+      const orgUsername =
+        dbUser.username || getOrgUsernameFromEmail(dbUser.email, teamMetadata?.orgAutoAcceptEmail ?? null);
       await tx.profile.upsert({
         create: {
           uid: ProfileRepository.generateProfileUid(),
           userId: user.id,
           organizationId: team.id,
-          // FIXME: Should properly derive from email
-          username: dbUser.username || dbUser.email.split("@")[0],
+          username: orgUsername,
         },
         update: {
-          username: dbUser.username || dbUser.email.split("@")[0],
+          username: orgUsername,
         },
         where: {
           userId_organizationId: {

@@ -1,4 +1,5 @@
 import { orgDomainConfig } from "@calcom/features/ee/organizations/lib/orgDomains";
+import { ProfileRepository } from "@calcom/lib/server/repository/profile";
 import type { AppGetServerSidePropsContext, AppPrisma } from "@calcom/types/AppGetServerSideProps";
 
 import { getSerializableForm } from "../../lib/getSerializableForm";
@@ -19,7 +20,7 @@ export const getServerSideProps = async function getServerSideProps(
       notFound: true,
     };
   }
-  const { currentOrgDomain, isValidOrgDomain } = orgDomainConfig(context.req);
+  const { currentOrgDomain } = orgDomainConfig(context.req);
 
   const isEmbed = params.appPages[1] === "embed";
 
@@ -27,19 +28,7 @@ export const getServerSideProps = async function getServerSideProps(
     where: {
       id: formId,
       user: {
-        profiles: {
-          ...(isValidOrgDomain
-            ? {
-                some: {
-                  organization: {
-                    slug: currentOrgDomain,
-                  },
-                },
-              }
-            : {
-                none: {},
-              }),
-        },
+        ...ProfileRepository._getPrismaWhereForProfilesOfOrg({ orgSlug: currentOrgDomain }),
       },
     },
     include: {
